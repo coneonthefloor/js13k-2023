@@ -22,8 +22,8 @@
         <canvas id="offscreen"></canvas>
         <div id="ui-left">
             <h2>Manage</h2>
-            <button><span class="cost" id="upgrade-cost"></span> Upgrade Troops</button>
-            <button><span class="cost" id="heal-cost"></span> Heal Troops</button>
+            <button id="upgrade"><span class="cost" id="upgrade-cost"></span> Upgrade Troops</button>
+            <button id="heal"><span class="cost" id="heal-cost"></span> Heal Troops</button>
 
             <h2>Recruit</h2>
             <div id="recruit-buttons"></div>
@@ -102,7 +102,7 @@
             cursor: pointer;
         }
 
-        button[disabled="true"] {
+        button[disabled] {
             color: grey!important;
         }
 

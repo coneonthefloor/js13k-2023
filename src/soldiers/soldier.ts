@@ -31,7 +31,6 @@ export class Soldier {
 
     public healCost = 1;
 
-    public rank = SoldierRank.BASE;
     public type = SoldierType.GENERIC;
 
     public damaged = 0;
@@ -71,8 +70,8 @@ export class Soldier {
 
     public target: Soldier | undefined;
 
-    constructor(public bounds: AABB) {
-        this.startPos = bounds.pos;
+    constructor(public bounds: AABB, public rank: SoldierRank = SoldierRank.BASE) {
+        this.startPos = bounds.pos.copy();
     }
 
     public canUpgrade(): boolean {
@@ -141,6 +140,9 @@ export class Soldier {
             } else {
                 this.meleeAttack = this.meleeAttackFrames;
                 this.target.health -= this.attack;
+                if (this.target.health <= 0) {
+                    this.experience += 1;
+                }
                 this.target.damaged = this.target.maxDamageFrames;
             }
         }

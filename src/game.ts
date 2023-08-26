@@ -12,6 +12,7 @@ import { MongolSoldier, MongolHorseArcher, MongolHorseMan } from "./soldiers/mon
 import { Soldier } from "./soldiers/soldier";
 import { trees } from "./tree";
 import { Vector2 } from "./vector";
+import { WAVES } from "./wave";
 
 export class Game {
     public gold = 100;
@@ -25,27 +26,18 @@ export class Game {
     public playerUnits = [new MongolSoldier(new AABB()), new MongolHorseArcher(new AABB()), new MongolHorseMan(new AABB())];
     public playerArmy: Soldier[] = [
         new MongolSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT - 200))),
-        new MongolSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 200))),
         new MongolSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT - 200))),
-        new MongolHorseArcher(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 + 100, SCREEN_HEIGHT - 150))),
-        new MongolHorseArcher(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT - 150))),
-        new MongolHorseMan(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100))),
+        new MongolHorseArcher(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150))),
     ];
     public enemyUnits = [new EuropeanSoldier(new AABB()), new EuropeanArcher(new AABB()), new EuropeanKnight(new AABB())];
-    public enemyArmy: Soldier[] = [
-        new EuropeanKnight(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 + 50, 200))),
-        new EuropeanKnight(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 - 50, 200))),
-        new EuropeanSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 - 100, 150))),
-        new EuropeanSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 + 100, 150))),
-        new EuropeanArcher(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 + 25, 100))),
-        new EuropeanArcher(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 - 25, 100))),
-    ];
+    public enemyArmy: Soldier[] = [];
 
     public queuedDomUpdate = true;
 
     public startBattle() {
         this.battleInProgress = true;
         this.queuedDomUpdate = true;
+        this.enemyArmy = WAVES[this.wave];
     }
 
     public start() {
@@ -97,6 +89,9 @@ export class Game {
                         if (playerUnit) {
                             enemyUnit.damaged = enemyUnit.maxDamageFrames;
                             enemyUnit.health -= playerUnit.attack;
+                            if (enemyUnit.health <= 0) {
+                                playerUnit.experience += 1;
+                            }
                             p.finished = true;
                         }
                     }
@@ -109,10 +104,7 @@ export class Game {
                 if (p.finished) {
                     this.projectiles.splice(i);
                 }
-
             });
-
-
         }
 
         if (this.queuedDomUpdate) {
@@ -131,9 +123,9 @@ export class Game {
                 this.queuedDomUpdate = true;
                 this.projectiles.splice(0, this.projectiles.length);
                 this.playerArmy.forEach(s => {
-                    s.bounds.pos.x = s.startPos.x
-                    s.bounds.pos.y = s.startPos.y
-                })
+                    s.bounds.pos.x = s.startPos.x;
+                    s.bounds.pos.y = s.startPos.y;
+                });
             }
         }
     }
@@ -175,25 +167,55 @@ export class Game {
                 this.recruitUnit(e.target.dataset.unit);
             });
         });
+
+        $('#heal').addEventListener('click', () => {
+            if (this.gold >= this.getHealCost()) {
+                this.gold -= this.getHealCost();
+                this.playerArmy.forEach(s => s.health = s.maxHealth);
+                this.queuedDomUpdate = true;
+            }
+        });
+
+        $('#upgrade').addEventListener('click', () => {
+            if (this.gold >= this.getUpgradeCost()) {
+                this.gold -= this.getUpgradeCost();
+                this.playerArmy.forEach(s => {
+                    if (s.canUpgrade()) {
+                        s.upgrade();
+                    }
+                    this.queuedDomUpdate = true;
+                });
+            }
+        });
     }
 
     public updateDom() {
         const $ = document.querySelector.bind(document);
 
-        $('#wave').innerText = this.wave;
+        $('#wave').innerText = `${this.wave}/${WAVES.length}`;
         $('#gold').innerText = this.gold;
 
         const healCost = this.getHealCost();
         if (healCost > 0) {
             $('#heal-cost').innerText = '$' + healCost;
         }
-        $('#heal-cost').parentElement.setAttribute('disabled', healCost === 0);
+
+        if (healCost === 0) {
+            $('#heal-cost').parentElement.setAttribute('disabled', '');
+        } else {
+            $('#heal-cost').parentElement.removeAttribute('disabled');
+        }
 
         const upgradeCost = this.getUpgradeCost();
         if (upgradeCost > 0) {
             $('#upgrade-cost').innerText = '$' + upgradeCost;
         }
-        $('#upgrade-cost').parentElement.setAttribute('disabled', upgradeCost === 0);
+
+        if (upgradeCost === 0) {
+            $('#upgrade-cost').parentElement.setAttribute('disabled', '');
+        } else {
+            $('#upgrade-cost').parentElement.removeAttribute('disabled');
+        }
 
         if (this.battleInProgress) {
             $('#ui-left').style.visibility = 'hidden';
