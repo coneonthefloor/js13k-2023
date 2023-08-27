@@ -31,6 +31,8 @@ export class Soldier {
 
     public healCost = 1;
 
+    public goldValue = 1;
+
     public type = SoldierType.GENERIC;
 
     public damaged = 0;

@@ -34,6 +34,8 @@ export class MongolSoldier extends Soldier {
     public attackRange = 50;
     public attackRate = new Duration(800);
 
+    public goldValue = 1;
+
     public animateMeleeAttack(ctx: Context) {
         if (this.meleeAttack && this.target) {
             ctx.save();
@@ -113,6 +115,8 @@ export class MongolHorseArcher extends Soldier {
     public cost = 4;
     public upgradeCost = 3;
     public healCost = 2;
+    
+    public goldValue = 2;
 
     public attack = 1;
     public speed = .8;
@@ -180,6 +184,8 @@ export class MongolHorseMan extends Soldier {
     public cost = 7;
     public upgradeCost = 4;
     public healCost = 3;
+    
+    public goldValue = 3;
 
     public attack = 3;
     public speed = .7;

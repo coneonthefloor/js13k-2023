@@ -4,7 +4,6 @@ import { TopCastle, BottomCastle } from "./castle";
 import { SCREEN_WIDTH, SCREEN_HEIGHT, PROJECTILES } from "./constants";
 import { Glitter } from "./glitter";
 import { PlayingField } from "./playing-field";
-import { Projectile } from "./projectile";
 import { randomInt, randomFloat } from "./random";
 import { incrementSeason } from "./season";
 import { EuropeanKnight, EuropeanSoldier, EuropeanArcher } from "./soldiers/europeans";
@@ -15,12 +14,15 @@ import { Vector2 } from "./vector";
 import { WAVES } from "./wave";
 
 export class Game {
-    public gold = 100;
+    public gold = 0;
     public wave = 0;
     public battleInProgress = false;
     public maxSoldiersPerArmy = 20;
 
     public projectiles = PROJECTILES;
+
+    public initialPlayerArmySize = 0;
+    public initialEnemyArmySize = 0;
 
     public soldierSize = 15;
     public playerUnits = [new MongolSoldier(new AABB()), new MongolHorseArcher(new AABB()), new MongolHorseMan(new AABB())];
@@ -36,8 +38,10 @@ export class Game {
 
     public startBattle() {
         this.battleInProgress = true;
-        this.queuedDomUpdate = true;
         this.enemyArmy = WAVES[this.wave];
+        this.initialEnemyArmySize = this.enemyArmy.length;
+        this.initialPlayerArmySize = this.playerArmy.length;
+        this.queuedDomUpdate = true;
     }
 
     public start() {
@@ -67,8 +71,21 @@ export class Game {
         this.glitter.forEach(p => p.update(dt));
 
         if (this.battleInProgress) {
-            this.playerArmy = this.playerArmy.filter(_ => _.health > 0);
-            this.enemyArmy = this.enemyArmy.filter(_ => _.health > 0);
+            const newPlayerArmy = this.playerArmy.filter(_ => _.health > 0);
+            const newEnemyArmy = this.enemyArmy.filter(_ => _.health > 0);
+            if (newEnemyArmy.length !== this.enemyArmy.length) {
+                this.enemyArmy.forEach(s => {
+                    const fallenSoldier = newEnemyArmy.find(_ => _.id === s.id);
+                    if (!fallenSoldier) {
+                        this.gold += s.goldValue;
+                    }
+                });
+            }
+            if (newPlayerArmy.length < this.playerArmy.length || newEnemyArmy.length < this.enemyArmy.length) {
+                this.enemyArmy = newEnemyArmy;
+                this.playerArmy = newPlayerArmy;
+                this.queuedDomUpdate = true;
+            }
             this.playerArmy.forEach(s => s.update(dt, this.enemyArmy));
             this.enemyArmy.forEach(s => s.update(dt, this.playerArmy));
             this.projectiles.forEach((p, i) => {
@@ -116,16 +133,18 @@ export class Game {
 
             if (battleEnded) {
                 this.battleInProgress = false;
-                this.wave++;
-                incrementSeason();
-                layers.background.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-                this.playingField.draw(layers.background);
-                this.queuedDomUpdate = true;
-                this.projectiles.splice(0, this.projectiles.length);
-                this.playerArmy.forEach(s => {
-                    s.bounds.pos.x = s.startPos.x;
-                    s.bounds.pos.y = s.startPos.y;
-                });
+                setTimeout(() => {
+                    this.wave++;
+                    incrementSeason();
+                    layers.background.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                    this.playingField.draw(layers.background);
+                    this.queuedDomUpdate = true;
+                    this.projectiles.splice(0, this.projectiles.length);
+                    this.playerArmy.forEach(s => {
+                        s.bounds.pos.x = s.startPos.x;
+                        s.bounds.pos.y = s.startPos.y;
+                    });
+                }, 2000);
             }
         }
     }
@@ -219,8 +238,13 @@ export class Game {
 
         if (this.battleInProgress) {
             $('#ui-left').style.visibility = 'hidden';
+            $('#ui-soldier-counts').style.visibility = 'visible';
+
+            $('#enemies').innerText = `${this.enemyArmy.length}/${this.initialEnemyArmySize}`;
+            $('#soldiers').innerText = `${this.playerArmy.length}/${this.initialPlayerArmySize}`;
         } else {
             $('#ui-left').style.visibility = 'visible';
+            $('#ui-soldier-counts').style.visibility = 'hidden';
         }
 
         this.queuedDomUpdate = false;
