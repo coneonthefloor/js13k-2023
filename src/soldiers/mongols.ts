@@ -9,13 +9,13 @@ const colors: { [key in SoldierRank]: SoldierPalette } = {
         skin: '#ffdba2'
     },
     [SoldierRank.UPGRADED]: {
-        main: '#563082',
-        accent: '#362644',
+        main: '#004391',
+        accent: '#264044',
         skin: '#ffdba2'
     },
     [SoldierRank.ELITE]: {
-        main: '#412929',
-        accent: '#5f5252',
+        main: '#000000',
+        accent: '#880000',
         skin: '#ffdba2'
     }
 };
@@ -51,9 +51,9 @@ export class MongolSoldier extends Soldier {
             }
             ctx.lineWidth = 2;
             ctx.fillStyle = 'black';
-            ctx.moveTo(0,0)
+            ctx.moveTo(0, 0);
             ctx.lineTo(this.attackRange - this.width, 0);
-            ctx.stroke()
+            ctx.stroke();
             ctx.fillStyle = 'gray';
             ctx.beginPath();
             ctx.arc(this.attackRange - this.width, 0, this.width / 3, 0, 2 * Math.PI);
@@ -107,6 +107,19 @@ export class MongolSoldier extends Soldier {
 
         super.draw(ctx);
     }
+
+    public upgrade(): void {
+        super.upgrade();
+
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.speed += .25;
+            this.health += 1;
+        }
+
+        if (this.rank === SoldierRank.ELITE) {
+            this.attack += .2;
+        }
+    }
 }
 
 export class MongolHorseArcher extends Soldier {
@@ -115,7 +128,7 @@ export class MongolHorseArcher extends Soldier {
     public cost = 4;
     public upgradeCost = 3;
     public healCost = 2;
-    
+
     public goldValue = 2;
 
     public attack = 1;
@@ -176,6 +189,19 @@ export class MongolHorseArcher extends Soldier {
 
         super.draw(ctx);
     }
+
+    public upgrade(): void {
+        super.upgrade();
+
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.speed += .10;
+            this.attackRange += 20;
+        }
+
+        if (this.rank === SoldierRank.ELITE) {
+            this.attack += 1;
+        }
+    }
 }
 
 export class MongolHorseMan extends Soldier {
@@ -184,7 +210,7 @@ export class MongolHorseMan extends Soldier {
     public cost = 7;
     public upgradeCost = 4;
     public healCost = 3;
-    
+
     public goldValue = 3;
 
     public attack = 3;
@@ -248,5 +274,18 @@ export class MongolHorseMan extends Soldier {
         ctx.restore();
 
         super.draw(ctx);
+    }
+
+    public upgrade(): void {
+        super.upgrade();
+
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.speed += .25;
+            this.attack + 1;
+        }
+
+        if (this.rank === SoldierRank.ELITE) {
+            this.health += 3;
+        }
     }
 }

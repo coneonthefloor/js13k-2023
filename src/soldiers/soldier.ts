@@ -3,7 +3,6 @@ import { Context } from "../canvas";
 import { DEBUG, PROJECTILES } from "../constants";
 import { Duration } from "../duration";
 import { Projectile } from "../projectile";
-import { sample } from "../random";
 import { Vector2 } from "../vector";
 
 export enum SoldierRank {
@@ -41,8 +40,6 @@ export class Soldier {
     public meleeAttack = 0;
     public meleeAttackFrames = 30;
 
-    public selected = false;
-
     public speed = .25;
     public attack = 1;
     public maxHealth: number;
@@ -53,10 +50,11 @@ export class Soldier {
     public attackAngle = 0;
 
     public experience = 0;
-    public experienceForEliteStatus = 8;
-    public experienceForUpgradedStatus = 3;
+    public experienceForEliteStatus = 2;
+    public experienceForUpgradedStatus = 1;
 
     public startPos: Vector2;
+    public target: Soldier | undefined;
 
     public get width(): number {
         return this.bounds.width;
@@ -70,35 +68,34 @@ export class Soldier {
         return this.bounds.pos;
     }
 
-    public target: Soldier | undefined;
+    public get alive(): boolean {
+        return this.health > 0;
+    }
 
-    constructor(public bounds: AABB, public rank: SoldierRank = SoldierRank.BASE) {
+
+    constructor(public bounds: AABB, public rank = SoldierRank.BASE) {
         this.startPos = bounds.pos.copy();
     }
 
     public canUpgrade(): boolean {
-        if (this.experience >= this.experienceForUpgradedStatus) {
-            return this.rank === SoldierRank.BASE;
+        if (this.rank === SoldierRank.BASE) {
+            return this.experience >= this.experienceForUpgradedStatus;
         }
 
-        if (this.experience >= this.experienceForEliteStatus) {
-            return true;
+        if (this.rank === SoldierRank.UPGRADED) {
+            return this.experience >= this.experienceForEliteStatus;
         }
 
         return false;
     }
 
     public upgrade() {
-        if (!this.canUpgrade()) {
-            return;
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.rank = SoldierRank.ELITE;
         }
 
         if (this.rank === SoldierRank.BASE) {
             this.rank = SoldierRank.UPGRADED;
-        }
-
-        if (this.rank === SoldierRank.UPGRADED) {
-            this.rank = SoldierRank.ELITE;
         }
     }
 
@@ -182,16 +179,6 @@ export class Soldier {
             ctx.restore();
         }
 
-        if (this.selected) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(this.pos.x, this.pos.y, this.width * 1.5, 0, 2 * Math.PI);
-            ctx.fillStyle = 'rgba(0, 255, 0, .4)';
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-        }
-
         if (DEBUG) {
             if (this.target) {
                 ctx.save();
@@ -237,11 +224,17 @@ export class Soldier {
     }
 
     public selectTarget(soldiers: Soldier[]): Soldier {
-        const strongAgainst = soldiers.filter(_ => this.isStrongAgainst(_));
+        const sortedByDistance = this.sortSoldiersByDistance(soldiers);
+        const strongAgainst = sortedByDistance
+            .filter(_ => this.isStrongAgainst(_));
         if (strongAgainst.length) {
-            return sample(strongAgainst);
+            return strongAgainst[0];
         }
-        return sample(soldiers);
+        return sortedByDistance[0];
+    }
+
+    public sortSoldiersByDistance(soldiers: Soldier[]): Soldier[] {
+        return soldiers.sort((a, b) => a.pos.distanceFrom(this.pos) < b.pos.distanceFrom(this.pos) ? 0 : 1);
     }
 
     public getHitBox(): AABB {

@@ -26,7 +26,7 @@ export class EuropeanSoldier extends Soldier {
     public cost = 2;
     public upgradeCost = 2;
     public healCost = 1;
-    
+
     public goldValue = 1;
 
     public attack = 1;
@@ -77,6 +77,19 @@ export class EuropeanSoldier extends Soldier {
         ctx.restore();
 
         super.draw(ctx);
+    }
+
+    public upgrade(): void {
+        super.upgrade();
+
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.speed += .10;
+            this.attack += 1;
+        }
+
+        if (this.rank === SoldierRank.ELITE) {
+            this.health += 2;
+        }
     }
 }
 
@@ -137,6 +150,19 @@ export class EuropeanArcher extends Soldier {
 
         super.draw(ctx);
     }
+
+    public upgrade(): void {
+        super.upgrade();
+
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.health += 1;
+            this.attack += 1;
+        }
+
+        if (this.rank === SoldierRank.ELITE) {
+            this.attackRate = new Duration(800);
+        }
+    }
 }
 
 export class EuropeanKnight extends Soldier {
@@ -145,7 +171,7 @@ export class EuropeanKnight extends Soldier {
     public cost = 6;
     public upgradeCost = 3;
     public healCost = 3;
-    
+
     public goldValue = 3;
 
     public attack = 3;
@@ -170,9 +196,9 @@ export class EuropeanKnight extends Soldier {
             }
             ctx.lineWidth = 2;
             ctx.fillStyle = 'black';
-            ctx.moveTo(0,0)
+            ctx.moveTo(0, 0);
             ctx.lineTo(this.attackRange - this.width, 0);
-            ctx.stroke()
+            ctx.stroke();
             ctx.fillStyle = 'gray';
             ctx.beginPath();
             ctx.arc(this.attackRange - this.width, 0, this.width / 3, 0, 2 * Math.PI);
@@ -233,5 +259,17 @@ export class EuropeanKnight extends Soldier {
         ctx.restore();
 
         super.draw(ctx);
+    }
+
+    public upgrade(): void {
+        super.upgrade();
+
+        if (this.rank === SoldierRank.UPGRADED) {
+            this.speed += .10
+        }
+
+        if (this.rank === SoldierRank.ELITE) {
+            this.attackRate = new Duration(800);
+        }
     }
 }

@@ -2,6 +2,7 @@ import { AABB } from "./aabb";
 import { layers } from "./canvas";
 import { TopCastle, BottomCastle } from "./castle";
 import { SCREEN_WIDTH, SCREEN_HEIGHT, PROJECTILES } from "./constants";
+import { generateCRTVignette } from "./crt-vignette";
 import { Glitter } from "./glitter";
 import { PlayingField } from "./playing-field";
 import { randomInt, randomFloat } from "./random";
@@ -13,16 +14,72 @@ import { trees } from "./tree";
 import { Vector2 } from "./vector";
 import { WAVES } from "./wave";
 
+export enum State {
+    IN_BATTLE, BATTLE_BREAKDOWN, SHOP, GAME_OVER, GAME_COMPLETE
+}
+
+const $ = document.querySelector.bind(document);
+// const vignette = generateCRTVignette(layers.offscreen, SCREEN_WIDTH, SCREEN_HEIGHT);
+
 export class Game {
-    public gold = 0;
-    public wave = 0;
-    public battleInProgress = false;
-    public maxSoldiersPerArmy = 20;
+    private _gold = 0;
+
+    public get gold(): number {
+        return this._gold;
+    }
+
+    public set gold(value: number) {
+        this._gold = value;
+        $('#gold').innerText = value;
+    }
+
+    private _wave = 0;
+
+    public get wave(): number {
+        return this._wave;
+    }
+
+    public set wave(value: number) {
+        this._wave = value;
+        $('#wave').innerText = `${value}/${WAVES.length}`;
+    }
+
+    private _state = State.SHOP;
+
+    public get state(): State {
+        return this._state;
+    }
+
+    public set state(value: State) {
+        this._state = value;
+        this.setUILayerVisibility();
+    }
+
+    private _healCost = 0;
+
+    public get healCost(): number {
+        return this._healCost;
+    }
+
+    public set healCost(value: number) {
+        this._healCost = value;
+        this.updateHealCostUi();
+    }
+
+    private _upgradeCost = 0;
+
+    public get upgradeCost(): number {
+        return this._upgradeCost;
+    }
+
+    public set upgradeCost(value: number) {
+        this._upgradeCost = value;
+        this.updateUpgradeCostUI();
+    }
+
+    public maxSoldiersPerArmy = 12;
 
     public projectiles = PROJECTILES;
-
-    public initialPlayerArmySize = 0;
-    public initialEnemyArmySize = 0;
 
     public soldierSize = 15;
     public playerUnits = [new MongolSoldier(new AABB()), new MongolHorseArcher(new AABB()), new MongolHorseMan(new AABB())];
@@ -34,75 +91,112 @@ export class Game {
     public enemyUnits = [new EuropeanSoldier(new AABB()), new EuropeanArcher(new AABB()), new EuropeanKnight(new AABB())];
     public enemyArmy: Soldier[] = [];
 
-    public queuedDomUpdate = true;
+    public selectedUnit?: Soldier;
+
+    private _livingSoldiers: Soldier[];
+
+    public get livingSoldiers(): Soldier[] {
+        return this._livingSoldiers;
+    }
+
+    public set livingSoldiers(value: Soldier[]) {
+        this._livingSoldiers = value;
+        $('#soldiers').innerText = `${value.length}/${this.playerArmy.length}`;
+    }
+
+    private _livingEnemies: Soldier[];
+
+    public get livingEnemies(): Soldier[] {
+        return this._livingEnemies;
+    }
+
+    public set livingEnemies(value: Soldier[]) {
+        this._livingEnemies = value;
+        $('#enemies').innerText = `${value.length}/${this.enemyArmy.length}`;
+    }
+
+    public $recruitButtons: HTMLButtonElement[] = [];
+
+    public calculateLivingSoldiers(): Soldier[] {
+        return this.playerArmy.filter(_ => _.alive);
+    }
+
+    public calculateLivingEnemies(): Soldier[] {
+        return this.enemyArmy.filter(_ => _.alive);
+    }
 
     public startBattle() {
-        this.battleInProgress = true;
-        this.enemyArmy = WAVES[this.wave];
-        this.initialEnemyArmySize = this.enemyArmy.length;
-        this.initialPlayerArmySize = this.playerArmy.length;
-        this.queuedDomUpdate = true;
+        if (this.wave > WAVES.length) return;
+
+        delete this.selectedUnit;
+        this.state = State.IN_BATTLE;
+        this.enemyArmy = WAVES[this.wave - 1];
     }
 
     public start() {
         this.createPlayingField();
         this.createDecorations();
         this.createGlitter();
+
         this.initDom();
+        this.setUILayerVisibility();
+        this.updateRecruitButtons();
 
-        window.addEventListener('click', (e: any) => {
-            const clickPoint = new Vector2(e.layerX, e.layerY);
+        this.wave = 1;
+        this.gold = 0;
+        this.updateHealCostUi();
+        this.updateUpgradeCostUI();
 
-            const previouslySelected = this.playerArmy.find(s => s.selected);
-            if (!previouslySelected) {
-                const selectedSoldier = this.playerArmy.find(s => s.getHitBox().containsPoint(clickPoint));
-                if (selectedSoldier) {
-                    selectedSoldier.selected = true;
-                }
-            } else {
-                previouslySelected.bounds.pos = clickPoint;
-                previouslySelected.selected = false;
-            }
-        });
+        this.livingEnemies = this.enemyArmy;
+        this.livingSoldiers = this.playerArmy;
+    }
+
+    public updateHealCostUi() {
+        $('#heal-cost').innerText = this.healCost > 0 ? '$' + this.healCost : '';
+
+        if (this.healCost === 0) {
+            $('#heal-cost').parentElement.setAttribute('disabled', '');
+        } else {
+            $('#heal-cost').parentElement.removeAttribute('disabled');
+        }
+    }
+
+    public updateUpgradeCostUI() {
+        $('#upgrade-cost').innerText = this.upgradeCost > 0 ? '$' + this.upgradeCost : '';
+
+        if (this.upgradeCost === 0) {
+            $('#upgrade-cost').parentElement.setAttribute('disabled', '');
+        } else {
+            $('#upgrade-cost').parentElement.removeAttribute('disabled');
+        }
     }
 
     public update(dt: number) {
-        this.decorations.forEach(d => d.update(dt));
         this.glitter.forEach(p => p.update(dt));
+        this.decorations.forEach(d => d.update(dt));
 
-        if (this.battleInProgress) {
-            const newPlayerArmy = this.playerArmy.filter(_ => _.health > 0);
-            const newEnemyArmy = this.enemyArmy.filter(_ => _.health > 0);
-            if (newEnemyArmy.length !== this.enemyArmy.length) {
-                this.enemyArmy.forEach(s => {
-                    const fallenSoldier = newEnemyArmy.find(_ => _.id === s.id);
-                    if (!fallenSoldier) {
-                        this.gold += s.goldValue;
-                    }
-                });
-            }
-            if (newPlayerArmy.length < this.playerArmy.length || newEnemyArmy.length < this.enemyArmy.length) {
-                this.enemyArmy = newEnemyArmy;
-                this.playerArmy = newPlayerArmy;
-                this.queuedDomUpdate = true;
-            }
-            this.playerArmy.forEach(s => s.update(dt, this.enemyArmy));
-            this.enemyArmy.forEach(s => s.update(dt, this.playerArmy));
-            this.projectiles.forEach((p, i) => {
+        if (this.state === State.IN_BATTLE) {
+            this.livingEnemies = this.calculateLivingEnemies();
+            this.livingSoldiers = this.calculateLivingSoldiers();
+
+            this.livingEnemies.forEach(s => s.update(dt, this.livingSoldiers));
+            this.livingSoldiers.forEach(s => s.update(dt, this.livingEnemies));
+
+            this.projectiles.filter(p => !p.finished).forEach((p, i) => {
                 p.update();
 
-                const playerUnit = this.playerArmy.find(_ => _.getHitBox().containsPoint(p.position));
+                const playerUnit = this.livingSoldiers.find(_ => _.getHitBox().containsPoint(p.position));
                 if (playerUnit) {
-                    const enemy = this.enemyArmy.find(_ => _.id === p.parentId);
+                    const enemy = this.livingEnemies.find(_ => _.id === p.parentId);
                     if (enemy) {
                         playerUnit.damaged = playerUnit.maxDamageFrames;
                         playerUnit.health -= enemy.attack;
                         p.finished = true;
                     }
                 } else {
-                    const enemyUnit = this.enemyArmy.find(_ => _.getHitBox().containsPoint(p.position));
+                    const enemyUnit = this.livingEnemies.find(_ => _.getHitBox().containsPoint(p.position));
                     if (enemyUnit) {
-                        const playerUnit = this.playerArmy.find(_ => _.id === p.parentId);
+                        const playerUnit = this.livingSoldiers.find(_ => _.id === p.parentId);
                         if (playerUnit) {
                             enemyUnit.damaged = enemyUnit.maxDamageFrames;
                             enemyUnit.health -= playerUnit.attack;
@@ -117,154 +211,191 @@ export class Game {
                 if (!this.playingField.containsPoint(p.position)) {
                     p.finished = true;
                 }
-
-                if (p.finished) {
-                    this.projectiles.splice(i);
-                }
             });
-        }
 
-        if (this.queuedDomUpdate) {
-            this.updateDom();
-        }
-
-        if (this.battleInProgress) {
-            const battleEnded = this.enemyArmy.length <= 0 || this.playerArmy.length <= 0;
+            const battleEnded = this.livingEnemies.length <= 0 || this.livingSoldiers.length <= 0;
 
             if (battleEnded) {
-                this.battleInProgress = false;
-                setTimeout(() => {
-                    this.wave++;
-                    incrementSeason();
-                    layers.background.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-                    this.playingField.draw(layers.background);
-                    this.queuedDomUpdate = true;
-                    this.projectiles.splice(0, this.projectiles.length);
-                    this.playerArmy.forEach(s => {
-                        s.bounds.pos.x = s.startPos.x;
-                        s.bounds.pos.y = s.startPos.y;
-                    });
-                }, 2000);
+                this.endBattle();
             }
         }
+    }
+
+    public setUILayerVisibility() {
+        switch (this.state) {
+            case State.SHOP:
+                $('#ui-left').style.visibility = 'visible';
+                $('#ui-soldier-counts').style.visibility = 'hidden';
+                break;
+            case State.IN_BATTLE:
+                $('#ui-left').style.visibility = 'hidden';
+                $('#ui-soldier-counts').style.visibility = 'visible';
+                break;
+            case State.BATTLE_BREAKDOWN:
+                $('#ui-left').style.visibility = 'hidden';
+                $('#ui-soldier-counts').style.visibility = 'hidden';
+                break;
+        }
+    }
+
+    public endBattle() {
+        this.state = State.SHOP;
+        this.healCost = this.calculateHealCost();
+        this.upgradeCost = this.calculateUpgradeCost();
+        this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
+
+        incrementSeason();
+        if (this.livingSoldiers.length > 0) {
+            this.wave += 1;
+        }
+        layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        this.playingField.draw(layers.bg);
+        this.projectiles.length = 0;
+        this.livingSoldiers.forEach(s => {
+            s.bounds.pos.x = s.startPos.x;
+            s.bounds.pos.y = s.startPos.y;
+        });
+        this.playerArmy = this.livingSoldiers;
+        this.setUILayerVisibility();
+        this.updateRecruitButtons();
     }
 
     public draw() {
-        this.glitter.forEach(p => p.draw(layers.effects));
-        this.decorations.forEach(d => d.draw(layers.game));
+        layers.mg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        layers.fg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        if (this.battleInProgress) {
-            this.projectiles.forEach(p => p.draw(layers.game));
+        this.glitter.forEach(p => p.draw(layers.fg));
+        this.decorations.forEach(d => d.draw(layers.mg));
+
+        if (this.state === State.IN_BATTLE) {
+            this.projectiles.filter(p => !p.finished).forEach(p => p.draw(layers.mg));
         }
 
-        [...this.playerArmy, ...this.enemyArmy].forEach(s => {
-            if (!this.battleInProgress) {
+        [...this.livingSoldiers, ...this.livingEnemies].forEach(s => {
+            if (this.state !== State.IN_BATTLE) {
                 s.damaged = 0;
                 s.meleeAttack = 0;
             }
-            s.draw(layers.game);
+            s.draw(layers.mg);
         });
+
+        this.highlightSelectedUnit();
+    }
+
+    public highlightSelectedUnit() {
+        if (!this.selectedUnit) return;
+
+        const { selectedUnit: { pos, width } } = this;
+        layers.fg.save();
+        layers.fg.beginPath();
+        layers.fg.arc(pos.x, pos.y, width * 1.5, 0, 2 * Math.PI);
+        layers.fg.fillStyle = 'rgba(0, 255, 0, .4)';
+        layers.fg.closePath();
+        layers.fg.fill();
+        layers.fg.restore();
     }
 
     public initDom() {
-        const $ = document.querySelector.bind(document);
+        $('#heal').addEventListener('click', this.handleHealClick);
+        $('#start').addEventListener('click', this.handleStartClick);
+        $("#stage").addEventListener('click', this.handleUnitPlacement);
+        $('#upgrade').addEventListener('click', this.handleUpgradeClick);
 
-        $('#start').addEventListener('click', () => {
-            if (!this.battleInProgress) {
-                this.startBattle();
-            }
-        });
+        this.createRecruitButtons();
+    }
 
+    public createRecruitButtons() {
+        const $buttonContainer = $('#recruit-buttons');
         for (const unit of this.playerUnits) {
-            $('#recruit-buttons').innerHTML += `<button data-unit="${unit.name}" data-cost="${unit.cost}">
-                <span class="cost">$${unit.cost}</span> ${unit.name}
-            </button>`;
-        }
+            const $cost = document.createElement('span');
+            $cost.classList.add('cost');
+            $cost.innerText = '$' + unit.cost;
 
-        $('#recruit-buttons').querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.recruitUnit(e.target.dataset.unit);
+            const $name = document.createElement('span');
+            $name.innerText = unit.name;
+
+            const $btn = document.createElement('button');
+            $btn.dataset.unit = unit.name;
+            $btn.dataset.cost = unit.cost.toString();
+            $btn.addEventListener('click', () => {
+                this.recruit(unit.name);
             });
-        });
 
-        $('#heal').addEventListener('click', () => {
-            if (this.gold >= this.getHealCost()) {
-                this.gold -= this.getHealCost();
-                this.playerArmy.forEach(s => s.health = s.maxHealth);
-                this.queuedDomUpdate = true;
-            }
-        });
-
-        $('#upgrade').addEventListener('click', () => {
-            if (this.gold >= this.getUpgradeCost()) {
-                this.gold -= this.getUpgradeCost();
-                this.playerArmy.forEach(s => {
-                    if (s.canUpgrade()) {
-                        s.upgrade();
-                    }
-                    this.queuedDomUpdate = true;
-                });
-            }
-        });
+            $btn.appendChild($cost);
+            $btn.appendChild($name);
+            $buttonContainer.appendChild($btn);
+            this.$recruitButtons.push($btn);
+        }
     }
 
-    public updateDom() {
-        const $ = document.querySelector.bind(document);
-
-        $('#wave').innerText = `${this.wave}/${WAVES.length}`;
-        $('#gold').innerText = this.gold;
-
-        const healCost = this.getHealCost();
-        if (healCost > 0) {
-            $('#heal-cost').innerText = '$' + healCost;
+    public updateRecruitButtons() {
+        for (const btn of this.$recruitButtons) {
+            const cost = Number(btn.dataset.cost);
+            if (cost > this.gold || this.playerArmy.length >= this.maxSoldiersPerArmy) {
+                btn.setAttribute('disabled', '');
+            } else {
+                btn.removeAttribute('disabled');
+            }
         }
-
-        if (healCost === 0) {
-            $('#heal-cost').parentElement.setAttribute('disabled', '');
-        } else {
-            $('#heal-cost').parentElement.removeAttribute('disabled');
-        }
-
-        const upgradeCost = this.getUpgradeCost();
-        if (upgradeCost > 0) {
-            $('#upgrade-cost').innerText = '$' + upgradeCost;
-        }
-
-        if (upgradeCost === 0) {
-            $('#upgrade-cost').parentElement.setAttribute('disabled', '');
-        } else {
-            $('#upgrade-cost').parentElement.removeAttribute('disabled');
-        }
-
-        if (this.battleInProgress) {
-            $('#ui-left').style.visibility = 'hidden';
-            $('#ui-soldier-counts').style.visibility = 'visible';
-
-            $('#enemies').innerText = `${this.enemyArmy.length}/${this.initialEnemyArmySize}`;
-            $('#soldiers').innerText = `${this.playerArmy.length}/${this.initialPlayerArmySize}`;
-        } else {
-            $('#ui-left').style.visibility = 'visible';
-            $('#ui-soldier-counts').style.visibility = 'hidden';
-        }
-
-        this.queuedDomUpdate = false;
     }
 
-    public getHealCost() {
-        return this.playerArmy
+    public handleUpgradeClick = () => {
+        const upgradeCost = this.calculateUpgradeCost();
+        if (this.gold >= upgradeCost) {
+            this.livingSoldiers.filter(_ => _.canUpgrade()).forEach(_ => _.upgrade());
+            this.gold -= upgradeCost;
+            this.upgradeCost = this.calculateUpgradeCost();
+        }
+    };
+
+    public handleHealClick = () => {
+        const healCost = this.calculateHealCost();
+        if (this.gold >= healCost) {
+            this.gold -= healCost;
+            this.livingSoldiers.forEach(s => s.health = s.maxHealth);
+            this.healCost = this.calculateHealCost();
+        }
+    };
+
+    public handleStartClick = () => {
+        if (this.state !== State.IN_BATTLE) {
+            this.startBattle();
+        }
+    };
+
+    public handleUnitPlacement = (e: MouseEvent) => {
+        if (this.state === State.IN_BATTLE) return;
+
+        const clickPoint = new Vector2(e.offsetX, e.offsetY);
+        if (!this.selectedUnit) {
+            this.selectedUnit = this.livingSoldiers.find(s => s.getHitBox().containsPoint(clickPoint));
+        } else {
+            const { playingField: { height, width, pos } } = this;
+            const bounds = new AABB(width, height / 2, new Vector2(pos.x, pos.y + height / 2));
+
+            if (bounds.containsPoint(clickPoint)) {
+                this.selectedUnit.bounds.pos = clickPoint;
+                this.selectedUnit.startPos = clickPoint.copy();
+                delete this.selectedUnit;
+            }
+        }
+    };
+
+    public calculateHealCost() {
+        return this.livingSoldiers
             .filter(_ => _.hasDamage())
             .reduce((acc, u) => u.healCost + acc, 0);
     }
 
-    public getUpgradeCost() {
-        return this.playerArmy
+    public calculateUpgradeCost() {
+        return this.livingSoldiers
             .filter(_ => _.canUpgrade())
-            .reduce((acc, u) => u.upgradeCost + acc, 0);
+            .reduce((acc, _) => _.upgradeCost + acc, 0);
     }
 
-    public recruitUnit(name: string) {
+    public recruit(name: string) {
         const unit = this.playerUnits.find(_ => _.name === name) as Soldier;
-        if (this.gold >= unit.cost && this.playerArmy.length < this.maxSoldiersPerArmy) {
+        if (this.gold >= unit.cost && this.livingSoldiers.length < this.maxSoldiersPerArmy) {
             this.gold -= unit.cost;
             const minX = this.playingField.pos.x + 30;
             const maxX = this.playingField.pos.x + this.playingField.width - 30;
@@ -273,12 +404,11 @@ export class Game {
             const pos = new Vector2(randomInt(minX, maxX), randomInt(minY, maxY));
             const bounds = new AABB(this.soldierSize, this.soldierSize, pos);
             const newUnit = new (unit as any).constructor(bounds);
-            while (newUnit.collides(this.playerArmy)) {
+            while (newUnit.collides(this.livingSoldiers)) {
                 newUnit.bounds.pos = new Vector2(randomInt(minX, maxX), randomInt(minY, maxY));
             }
             this.playerArmy.push(newUnit);
-
-            this.queuedDomUpdate = true;
+            this.updateRecruitButtons();
         }
     }
 
@@ -304,7 +434,7 @@ export class Game {
                 playingFieldOffsetY,
             )
         );
-        this.playingField.draw(layers.background);
+        this.playingField.draw(layers.bg);
     }
 
     public glitter: Glitter[] = [];
