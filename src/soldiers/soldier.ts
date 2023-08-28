@@ -50,8 +50,8 @@ export class Soldier {
     public attackAngle = 0;
 
     public experience = 0;
-    public experienceForEliteStatus = 2;
-    public experienceForUpgradedStatus = 1;
+    public experienceForEliteStatus = 6;
+    public experienceForUpgradedStatus = 3;
 
     public startPos: Vector2;
     public target: Soldier | undefined;

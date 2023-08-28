@@ -244,20 +244,30 @@ export class Game {
         this.upgradeCost = this.calculateUpgradeCost();
         this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
 
-        incrementSeason();
+        // battle won
         if (this.livingSoldiers.length > 0) {
             this.wave += 1;
+            incrementSeason();
+            layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            this.playingField.draw(layers.bg);
+        } else {
+            // battle lost
+            this.resetSoldierHealth();
         }
-        layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-        this.playingField.draw(layers.bg);
+
         this.projectiles.length = 0;
-        this.livingSoldiers.forEach(s => {
-            s.bounds.pos.x = s.startPos.x;
-            s.bounds.pos.y = s.startPos.y;
-        });
         this.playerArmy = this.livingSoldiers;
+        this.resetSoldierPositions();
         this.setUILayerVisibility();
         this.updateRecruitButtons();
+    }
+
+    public resetSoldierHealth() {
+        this.playerArmy.forEach(_ => _.health = _.maxHealth);
+    }
+
+    public resetSoldierPositions() {
+        this.playerArmy.forEach(_ => _.bounds.pos = _.startPos.copy());
     }
 
     public draw() {

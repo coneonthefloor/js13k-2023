@@ -27,7 +27,7 @@ export class EuropeanSoldier extends Soldier {
     public upgradeCost = 2;
     public healCost = 1;
 
-    public goldValue = 1;
+    public goldValue = 2;
 
     public attack = 1;
     public speed = .33;
@@ -100,7 +100,7 @@ export class EuropeanArcher extends Soldier {
     public upgradeCost = 3;
     public healCost = 2;
 
-    public goldValue = 2;
+    public goldValue = 4;
 
     public attack = 1;
     public speed = .25;
@@ -172,7 +172,7 @@ export class EuropeanKnight extends Soldier {
     public upgradeCost = 3;
     public healCost = 3;
 
-    public goldValue = 3;
+    public goldValue = 5;
 
     public attack = 3;
     public speed = .25;
