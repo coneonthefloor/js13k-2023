@@ -198,7 +198,7 @@ export class Game {
 
             if (this.livingSoldiers.find(_ => _.id === projectile.parentId)) {
                 projectile.finished = this.checkProjectileHitsEnemyUnit(projectile);
-            } else {
+            } else if (this.livingEnemies.find(_ => _.id === projectile.parentId)) {
                 projectile.finished = this.checkProjectileHitsPlayerUnit(projectile);
             }
 
