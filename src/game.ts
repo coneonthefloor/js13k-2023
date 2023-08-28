@@ -5,6 +5,7 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT, PROJECTILES } from "./constants";
 import { generateCRTVignette } from "./crt-vignette";
 import { Glitter } from "./glitter";
 import { PlayingField } from "./playing-field";
+import { Projectile } from "./projectile";
 import { randomInt, randomFloat } from "./random";
 import { incrementSeason } from "./season";
 import { EuropeanKnight, EuropeanSoldier, EuropeanArcher } from "./soldiers/europeans";
@@ -182,43 +183,64 @@ export class Game {
             this.livingEnemies.forEach(s => s.update(dt, this.livingSoldiers));
             this.livingSoldiers.forEach(s => s.update(dt, this.livingEnemies));
 
-            this.projectiles.filter(p => !p.finished).forEach((p, i) => {
-                p.update();
-
-                const playerUnit = this.livingSoldiers.find(_ => _.getHitBox().containsPoint(p.position));
-                if (playerUnit) {
-                    const enemy = this.livingEnemies.find(_ => _.id === p.parentId);
-                    if (enemy) {
-                        playerUnit.damaged = playerUnit.maxDamageFrames;
-                        playerUnit.health -= enemy.attack;
-                        p.finished = true;
-                    }
-                } else {
-                    const enemyUnit = this.livingEnemies.find(_ => _.getHitBox().containsPoint(p.position));
-                    if (enemyUnit) {
-                        const playerUnit = this.livingSoldiers.find(_ => _.id === p.parentId);
-                        if (playerUnit) {
-                            enemyUnit.damaged = enemyUnit.maxDamageFrames;
-                            enemyUnit.health -= playerUnit.attack;
-                            if (enemyUnit.health <= 0) {
-                                playerUnit.experience += 1;
-                            }
-                            p.finished = true;
-                        }
-                    }
-                }
-
-                if (!this.playingField.containsPoint(p.position)) {
-                    p.finished = true;
-                }
-            });
+            this.updateProjectiles();
 
             const battleEnded = this.livingEnemies.length <= 0 || this.livingSoldiers.length <= 0;
-
             if (battleEnded) {
                 this.endBattle();
             }
         }
+    }
+
+    public updateProjectiles() {
+        for (const projectile of this.projectiles.filter(_ => !_.finished)) {
+            projectile.update();
+
+            if (this.livingSoldiers.find(_ => _.id === projectile.parentId)) {
+                projectile.finished = this.checkProjectileHitsEnemyUnit(projectile);
+            } else {
+                projectile.finished = this.checkProjectileHitsPlayerUnit(projectile);
+            }
+
+            this.checkProjectileHitsPlayerUnit(projectile);
+
+            if (!this.playingField.containsPoint(projectile.position)) {
+                projectile.finished = true;
+            }
+        }
+    }
+
+    public checkProjectileHitsPlayerUnit(p: Projectile): boolean {
+        const playerUnit = this.livingSoldiers
+            .filter(_ => _.id !== p.parentId)
+            .find(_ => _.getHitBox().containsPoint(p.position));
+        if (!playerUnit) return false;
+
+        const shooter = this.livingEnemies.find(_ => _.id === p.parentId);
+        if (shooter) {
+            playerUnit.damaged = playerUnit.maxDamageFrames;
+            playerUnit.health -= shooter.attack;
+        }
+
+        return true;
+    }
+
+    public checkProjectileHitsEnemyUnit(p: Projectile): boolean {
+        const enemyUnit = this.livingEnemies
+            .filter(_ => _.id !== p.parentId)
+            .find(_ => _.getHitBox().containsPoint(p.position));
+        if (!enemyUnit) return false;
+
+        const playerUnit = this.livingSoldiers.find(_ => _.id === p.parentId);
+        if (playerUnit) {
+            enemyUnit.damaged = enemyUnit.maxDamageFrames;
+            enemyUnit.health -= playerUnit.attack;
+            if (enemyUnit.health <= 0) {
+                playerUnit.experience += 1;
+            }
+        }
+
+        return true;
     }
 
     public setUILayerVisibility() {
