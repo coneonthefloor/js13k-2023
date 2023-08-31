@@ -2,7 +2,6 @@ import { AABB } from "./aabb";
 import { layers } from "./canvas";
 import { TopCastle, BottomCastle } from "./castle";
 import { SCREEN_WIDTH, SCREEN_HEIGHT, PROJECTILES } from "./constants";
-import { generateCRTVignette } from "./crt-vignette";
 import { Glitter } from "./glitter";
 import { PlayingField } from "./playing-field";
 import { Projectile } from "./projectile";
@@ -20,9 +19,10 @@ export enum State {
 }
 
 const $ = document.querySelector.bind(document);
-// const vignette = generateCRTVignette(layers.offscreen, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 export class Game {
+    public mouse = new Vector2();
+
     private _gold = 0;
 
     public get gold(): number {
@@ -93,6 +93,7 @@ export class Game {
     public enemyArmy: Soldier[] = [];
 
     public selectedUnit?: Soldier;
+    public placementBounds = new AABB();
 
     private _livingSoldiers: Soldier[];
 
@@ -135,6 +136,12 @@ export class Game {
     }
 
     public start() {
+        window.onmousemove = (e: MouseEvent) => {
+            if ((e.target as HTMLDivElement).getAttribute('id') === "fg") {
+                this.mouse.x = e.offsetX;
+                this.mouse.y = e.offsetY;
+            }
+        };
         this.createPlayingField();
         this.createDecorations();
         this.createGlitter();
@@ -150,12 +157,17 @@ export class Game {
 
         this.livingEnemies = this.enemyArmy;
         this.livingSoldiers = this.playerArmy;
+
+        this.placementBounds.pos.x = this.playingField.pos.x;
+        this.placementBounds.pos.y = this.playingField.pos.y + this.playingField.height / 2;
+        this.placementBounds.width = this.playingField.width;
+        this.placementBounds.height = this.playingField.height / 2;
     }
 
     public updateHealCostUi() {
         $('#heal-cost').innerText = this.healCost > 0 ? '$' + this.healCost : '';
 
-        if (this.healCost === 0) {
+        if (this.healCost === 0 || this.healCost > this.gold) {
             $('#heal-cost').parentElement.setAttribute('disabled', '');
         } else {
             $('#heal-cost').parentElement.removeAttribute('disabled');
@@ -165,7 +177,7 @@ export class Game {
     public updateUpgradeCostUI() {
         $('#upgrade-cost').innerText = this.upgradeCost > 0 ? '$' + this.upgradeCost : '';
 
-        if (this.upgradeCost === 0) {
+        if (this.upgradeCost === 0 || this.upgradeCost > this.gold) {
             $('#upgrade-cost').parentElement.setAttribute('disabled', '');
         } else {
             $('#upgrade-cost').parentElement.removeAttribute('disabled');
@@ -175,6 +187,12 @@ export class Game {
     public update(dt: number) {
         this.glitter.forEach(p => p.update(dt));
         this.decorations.forEach(d => d.update(dt));
+
+        if (this.state === State.SHOP && this.selectedUnit) {
+            if (this.placementBounds.containsPoint(this.mouse)) {
+                this.selectedUnit.bounds.pos = this.mouse.copy();
+            }
+        }
 
         if (this.state === State.IN_BATTLE) {
             this.livingEnemies = this.calculateLivingEnemies();
@@ -265,9 +283,9 @@ export class Game {
         this.endingBattle = true;
         setTimeout(() => {
             this.state = State.SHOP;
+            this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
             this.healCost = this.calculateHealCost();
             this.upgradeCost = this.calculateUpgradeCost();
-            this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
 
             // battle won
             if (this.livingSoldiers.length > 0) {
@@ -317,20 +335,58 @@ export class Game {
             s.draw(layers.mg);
         });
 
+        this.highlightPlacementBounds();
         this.highlightSelectedUnit();
+    }
+
+    public highlightPlacementBounds() {
+        if (!this.selectedUnit) return;
+
+        const ctx = layers.fg;
+        ctx.save();
+        if (this.placementValid()) {
+            ctx.strokeStyle = 'rgba(0, 255, 0, .4)';
+        } else {
+            ctx.strokeStyle = 'rgba(255, 0, 0, .4)';
+        }
+        ctx.lineWidth = 4;
+        ctx.strokeRect(
+            this.placementBounds.pos.x,
+            this.placementBounds.pos.y,
+            this.placementBounds.width,
+            this.placementBounds.height
+        );
+        ctx.restore();
     }
 
     public highlightSelectedUnit() {
         if (!this.selectedUnit) return;
 
         const { selectedUnit: { pos, width } } = this;
-        layers.fg.save();
-        layers.fg.beginPath();
-        layers.fg.arc(pos.x, pos.y, width * 1.5, 0, 2 * Math.PI);
-        layers.fg.fillStyle = 'rgba(0, 255, 0, .4)';
-        layers.fg.closePath();
-        layers.fg.fill();
-        layers.fg.restore();
+        const ctx = layers.fg;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, width * 1.5, 0, 2 * Math.PI);
+        if (this.placementValid()) {
+            ctx.fillStyle = 'rgba(0, 255, 0, .4)';
+        } else {
+            ctx.fillStyle = 'rgba(255, 0, 0, .4)';
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
+    public placementValid(): boolean {
+        if (this.selectedUnit) {
+            const inBounds = this.placementBounds.containsPoint(this.mouse);
+            const hitBox = this.selectedUnit.getHitBox();
+            const doesNotIntersect = this.livingSoldiers
+                .filter(_ => _.id !== this.selectedUnit?.id)
+                .every(_ => !_.getHitBox().intersects(hitBox));
+            return inBounds && doesNotIntersect;
+        }
+        return false;
     }
 
     public initDom() {
@@ -409,15 +465,10 @@ export class Game {
         const clickPoint = new Vector2(e.offsetX, e.offsetY);
         if (!this.selectedUnit) {
             this.selectedUnit = this.livingSoldiers.find(s => s.getHitBox().containsPoint(clickPoint));
-        } else {
-            const { playingField: { height, width, pos } } = this;
-            const bounds = new AABB(width, height / 2, new Vector2(pos.x, pos.y + height / 2));
-
-            if (bounds.containsPoint(clickPoint)) {
-                this.selectedUnit.bounds.pos = clickPoint;
-                this.selectedUnit.startPos = clickPoint.copy();
-                delete this.selectedUnit;
-            }
+        } else if (this.placementValid()) {
+            this.selectedUnit.bounds.pos = clickPoint;
+            this.selectedUnit.startPos = clickPoint.copy();
+            delete this.selectedUnit;
         }
     };
 
@@ -449,8 +500,8 @@ export class Game {
             }
             this.playerArmy.push(newUnit);
             this.updateRecruitButtons();
-            this.updateHealCostUi();
-            this.updateUpgradeCostUI();
+            this.healCost = this.calculateHealCost();
+            this.upgradeCost = this.calculateUpgradeCost();
         }
     }
 
