@@ -83,12 +83,12 @@ export class EuropeanSoldier extends Soldier {
         super.upgrade();
 
         if (this.rank === SoldierRank.UPGRADED) {
+            this.health += 2;
             this.speed += .10;
-            this.attack += 1;
         }
 
         if (this.rank === SoldierRank.ELITE) {
-            this.health += 2;
+            this.attack += 1;
         }
     }
 }
@@ -265,7 +265,7 @@ export class EuropeanKnight extends Soldier {
         super.upgrade();
 
         if (this.rank === SoldierRank.UPGRADED) {
-            this.speed += .10
+            this.speed += .10;
         }
 
         if (this.rank === SoldierRank.ELITE) {

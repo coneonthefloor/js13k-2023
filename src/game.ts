@@ -202,8 +202,6 @@ export class Game {
                 projectile.finished = this.checkProjectileHitsPlayerUnit(projectile);
             }
 
-            this.checkProjectileHitsPlayerUnit(projectile);
-
             if (!this.playingField.containsPoint(projectile.position)) {
                 projectile.finished = true;
             }
@@ -260,28 +258,36 @@ export class Game {
         }
     }
 
+    public endingBattle = false;
     public endBattle() {
-        this.state = State.SHOP;
-        this.healCost = this.calculateHealCost();
-        this.upgradeCost = this.calculateUpgradeCost();
-        this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
+        if (this.endingBattle) return;
 
-        // battle won
-        if (this.livingSoldiers.length > 0) {
-            this.wave += 1;
-            incrementSeason();
-            layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-            this.playingField.draw(layers.bg);
-        } else {
-            // battle lost
-            this.resetSoldierHealth();
-        }
+        this.endingBattle = true;
+        setTimeout(() => {
+            this.state = State.SHOP;
+            this.healCost = this.calculateHealCost();
+            this.upgradeCost = this.calculateUpgradeCost();
+            this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
 
-        this.projectiles.length = 0;
-        this.playerArmy = this.livingSoldiers;
-        this.resetSoldierPositions();
-        this.setUILayerVisibility();
-        this.updateRecruitButtons();
+            // battle won
+            if (this.livingSoldiers.length > 0) {
+                this.wave += 1;
+                incrementSeason();
+                layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                this.playingField.draw(layers.bg);
+            } else {
+                // battle lost
+                this.resetSoldierHealth();
+            }
+
+            this.projectiles.length = 0;
+            this.playerArmy = this.livingSoldiers;
+            this.resetSoldierPositions();
+            this.setUILayerVisibility();
+            this.updateRecruitButtons();
+
+            this.endingBattle = false;
+        }, 2500);
     }
 
     public resetSoldierHealth() {
@@ -377,6 +383,7 @@ export class Game {
             this.livingSoldiers.filter(_ => _.canUpgrade()).forEach(_ => _.upgrade());
             this.gold -= upgradeCost;
             this.upgradeCost = this.calculateUpgradeCost();
+            this.updateRecruitButtons();
         }
     };
 
@@ -386,6 +393,7 @@ export class Game {
             this.gold -= healCost;
             this.livingSoldiers.forEach(s => s.health = s.maxHealth);
             this.healCost = this.calculateHealCost();
+            this.updateRecruitButtons();
         }
     };
 
@@ -441,6 +449,8 @@ export class Game {
             }
             this.playerArmy.push(newUnit);
             this.updateRecruitButtons();
+            this.updateHealCostUi();
+            this.updateUpgradeCostUI();
         }
     }
 
