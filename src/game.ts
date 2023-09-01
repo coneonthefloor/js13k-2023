@@ -263,15 +263,21 @@ export class Game {
         switch (this.state) {
             case State.SHOP:
                 $('#ui-left').style.visibility = 'visible';
+                $('#ui-right').style.visibility = 'visible';
                 $('#ui-soldier-counts').style.visibility = 'hidden';
+                $('#ui-battle-breakdown').style.visibility = 'hidden';
                 break;
             case State.IN_BATTLE:
                 $('#ui-left').style.visibility = 'hidden';
+                $('#ui-right').style.visibility = 'hidden';
                 $('#ui-soldier-counts').style.visibility = 'visible';
+                $('#ui-battle-breakdown').style.visibility = 'hidden';
                 break;
             case State.BATTLE_BREAKDOWN:
                 $('#ui-left').style.visibility = 'hidden';
+                $('#ui-right').style.visibility = 'hidden';
                 $('#ui-soldier-counts').style.visibility = 'hidden';
+                $('#ui-battle-breakdown').style.visibility = 'visible';
                 break;
         }
     }
@@ -282,6 +288,10 @@ export class Game {
 
         this.endingBattle = true;
         setTimeout(() => {
+            const breakdown = {};
+            breakdown['waveNumber'] = this.wave;
+            breakdown['unitsLost'] = this.playerArmy.length - this.livingSoldiers.length;
+            breakdown['goldEarned'] = this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
             this.state = State.SHOP;
             this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
             this.healCost = this.calculateHealCost();
@@ -305,7 +315,24 @@ export class Game {
             this.updateRecruitButtons();
 
             this.endingBattle = false;
+            this.showBattleBreakdown(breakdown);
         }, 2500);
+    }
+
+    public showBattleBreakdown(breakdown: any) {
+        this.state = State.BATTLE_BREAKDOWN;
+
+        const won = this.livingSoldiers.length > 0;
+        $('#status').innerText = won ? "Battle Won" : "Battle Lost";
+        $('#wave-number').innerText = breakdown.waveNumber;
+        $("#troops-lost").innerText = breakdown.unitsLost;
+        $("#gold-earned").innerText = breakdown.goldEarned;
+
+        $('#continue').innerText = won ? "Continue" : "Try Again";
+    }
+
+    public hideBattleBreakdown() {
+        this.state = State.SHOP;
     }
 
     public resetSoldierHealth() {

@@ -52,12 +52,20 @@
                 <span id="wave"></span>
             </div>
         </div>
+
+        <div id="ui-battle-breakdown">
+            <h2 id="status"></h2>
+            <p>Wave: <span id="wave-number"></span></p>
+            <p>Troops Lost: <span id="troops-lost"></span></p>
+            <p>Gold Earned: <span id="gold-earned"></span></p>
+            <button id="continue"></button>
+        </div>
     </div>
 
     <style>
         :root {
-            --summer-main: #afba38;
-            --summer-variant: #75a535;
+            --summer-main: rgb(175, 186, 56);
+            --summer-variant: rgb(117, 166, 54);
 
             --spring-main: var(--summer-main);
             --spring-variant: var(--summer-variant);
@@ -67,6 +75,22 @@
 
             --winter-main: #c0dde6;
             --winter-variant: #abc5e2;
+        }
+
+        #ui-battle-breakdown {
+            top: 50px;
+            left: 196px;
+            width: 400px;
+            position: absolute;
+            text-align: center;
+            background: rgba(117, 166, 54, .8);
+            border: 4px solid rgb(175, 186, 56);
+            padding: 2rem 0;
+            visibility: hidden;
+        }
+
+        #ui-battle-breakdown h2 {
+            margin-top: 0;
         }
 
         #stage {
