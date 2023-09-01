@@ -15,7 +15,7 @@ import { Vector2 } from "./vector";
 import { WAVES } from "./wave";
 
 export enum State {
-    IN_BATTLE, BATTLE_BREAKDOWN, SHOP, GAME_OVER, GAME_COMPLETE
+    IN_BATTLE, BATTLE_WON, BATTLE_LOST, SHOP, GAME_OVER, GAME_COMPLETE
 }
 
 const $ = document.querySelector.bind(document);
@@ -273,7 +273,7 @@ export class Game {
                 $('#ui-soldier-counts').style.visibility = 'visible';
                 $('#ui-battle-breakdown').style.visibility = 'hidden';
                 break;
-            case State.BATTLE_BREAKDOWN:
+            case State.BATTLE_WON:
                 $('#ui-left').style.visibility = 'hidden';
                 $('#ui-right').style.visibility = 'hidden';
                 $('#ui-soldier-counts').style.visibility = 'hidden';
@@ -320,9 +320,9 @@ export class Game {
     }
 
     public showBattleBreakdown(breakdown: any) {
-        this.state = State.BATTLE_BREAKDOWN;
-
         const won = this.livingSoldiers.length > 0;
+        this.state = won ? State.BATTLE_WON : State.BATTLE_LOST;
+
         $('#status').innerText = won ? "Battle Won" : "Battle Lost";
         $('#wave-number').innerText = breakdown.waveNumber;
         $("#troops-lost").innerText = breakdown.unitsLost;
@@ -421,9 +421,20 @@ export class Game {
         $('#start').addEventListener('click', this.handleStartClick);
         $("#stage").addEventListener('click', this.handleUnitPlacement);
         $('#upgrade').addEventListener('click', this.handleUpgradeClick);
+        $('#continue').addEventListener('click', this.handleContinueClick);
 
         this.createRecruitButtons();
     }
+
+    public handleContinueClick = () => {
+        if (this.state === State.BATTLE_WON) {
+            this.state = State.SHOP;
+        }
+
+        if (this.state === State.BATTLE_LOST) {
+            this.state = State.GAME_OVER;
+        }
+    };
 
     public createRecruitButtons() {
         const $buttonContainer = $('#recruit-buttons');
