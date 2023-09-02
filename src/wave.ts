@@ -36,11 +36,18 @@ export const WAVES: Soldier[][] = [
         new EuropeanKnight(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2, backLine)), SoldierRank.UPGRADED),
     ],
     [
-        new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 100, frontLine)), SoldierRank.UPGRADED),
-        new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 100, frontLine)), SoldierRank.UPGRADED),
-        new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 50, frontLine)), SoldierRank.UPGRADED),
-        new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 50, frontLine)), SoldierRank.UPGRADED),
-        new EuropeanKnight(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 100, frontLine))),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 100, frontLine))),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 50, frontLine))),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 50, frontLine))),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 100, midLine)), SoldierRank.UPGRADED),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 100, midLine)), SoldierRank.UPGRADED),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 50, midLine)), SoldierRank.UPGRADED),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 50, midLine)), SoldierRank.UPGRADED),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 100, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 100, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 50, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 50, backLine)), SoldierRank.ELITE),
     ],
     [
         new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 150, 150)), SoldierRank.UPGRADED),
@@ -90,6 +97,6 @@ export const WAVES: Soldier[][] = [
         new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 150, 150)), SoldierRank.ELITE),
         new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 100, 250)), SoldierRank.ELITE),
         new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 100, 250)), SoldierRank.ELITE),
-        new EuropeanKnight(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2, 50)), SoldierRank.UPGRADED),
+        new EuropeanKnight(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2, 50)), SoldierRank.ELITE),
     ]
 ];
