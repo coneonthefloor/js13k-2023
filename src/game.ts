@@ -419,10 +419,11 @@ export class Game {
     public initDom() {
         $('#heal').addEventListener('click', this.handleHealClick);
         $('#start').addEventListener('click', this.handleStartClick);
-        $("#stage").addEventListener('click', this.handleUnitPlacement);
         $('#upgrade').addEventListener('click', this.handleUpgradeClick);
         $('#continue').addEventListener('click', this.handleContinueClick);
 
+        $("#stage").addEventListener('pointerup', this.handleDrop);
+        $("#stage").addEventListener('pointerdown', this.handleUnitPlacement);
         this.createRecruitButtons();
     }
 
@@ -504,10 +505,15 @@ export class Game {
         if (!this.selectedUnit) {
             this.selectedUnit = this.livingSoldiers.find(s => s.getHitBox().containsPoint(clickPoint));
         } else if (this.placementValid()) {
-            this.selectedUnit.bounds.pos = clickPoint;
-            this.selectedUnit.startPos = clickPoint.copy();
-            delete this.selectedUnit;
+            this.handleDrop(e);
         }
+    };
+
+    public handleDrop = (e: MouseEvent) => {
+        if (!this.selectedUnit) return;
+        this.selectedUnit.bounds.pos = this.mouse.copy();
+        this.selectedUnit.startPos = this.mouse.copy();
+        delete this.selectedUnit;
     };
 
     public calculateHealCost() {

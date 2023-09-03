@@ -145,7 +145,7 @@ export class Tree {
 
         for (const segment of [this.topSegment, this.bottomSegment, this.middleSegment]) {
             segment.maxRotation = this.sway;
-            segment.vr = this.sway / 200;
+            segment.vr = this.sway / 50;
         }
     }
 
