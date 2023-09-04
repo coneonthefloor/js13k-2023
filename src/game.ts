@@ -504,15 +504,17 @@ export class Game {
         const clickPoint = new Vector2(e.offsetX, e.offsetY);
         if (!this.selectedUnit) {
             this.selectedUnit = this.livingSoldiers.find(s => s.getHitBox().containsPoint(clickPoint));
-        } else if (this.placementValid()) {
+        } else {
             this.handleDrop(e);
         }
     };
 
     public handleDrop = (e: MouseEvent) => {
         if (!this.selectedUnit) return;
-        this.selectedUnit.bounds.pos = this.mouse.copy();
-        this.selectedUnit.startPos = this.mouse.copy();
+
+        const pos = this.placementValid() ? this.mouse.copy() : this.selectedUnit.startPos;
+        this.selectedUnit.bounds.pos = pos;
+        this.selectedUnit.startPos = pos;
         delete this.selectedUnit;
     };
 
