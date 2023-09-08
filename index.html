@@ -25,7 +25,7 @@
             <button id="upgrade"><span class="cost" id="upgrade-cost"></span> Upgrade Troops</button>
             <button id="heal"><span class="cost" id="heal-cost"></span> Heal Troops</button>
 
-            <h2>Recruit</h2>
+            <h2>Recruit (<span id="current-soldiers"></span>/15)</h2>
             <div id="recruit-buttons"></div>
 
             <h2>Action</h2>
@@ -178,6 +178,7 @@
         }
 
         #ui-left h2 {
+            font-size: 1.2rem;
             margin: .5rem 0;
         }
 
@@ -262,7 +263,6 @@
             background-color: rgba(166, 54, 54, 0.8) !important;
         }
     </style>
-
     <script src="build/main.js"></script>
 </body>
 

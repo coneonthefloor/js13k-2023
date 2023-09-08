@@ -170,6 +170,9 @@ export class Game {
         this.placementBounds.pos.y = this.playingField.pos.y + this.playingField.height / 2;
         this.placementBounds.width = this.playingField.width;
         this.placementBounds.height = this.playingField.height / 2;
+
+        $('#current-soldiers').innerText = this.playerArmy.length;
+
     }
 
     public updateHealCostUi() {
@@ -592,6 +595,7 @@ export class Game {
             this.updateRecruitButtons();
             this.healCost = this.calculateHealCost();
             this.upgradeCost = this.calculateUpgradeCost();
+            $('#current-soldiers').innerText = this.playerArmy.length;
         }
     }
 
