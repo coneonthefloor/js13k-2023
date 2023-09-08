@@ -30,7 +30,7 @@ export class EuropeanSoldier extends Soldier {
     public goldValue = 2;
 
     public attack = 1;
-    public speed = .33;
+    public speed = .5;
     public maxHealth = 4;
     public health = this.maxHealth;
     public attackRange = 50;
@@ -96,9 +96,9 @@ export class EuropeanSoldier extends Soldier {
 export class EuropeanArcher extends Soldier {
     public name = 'Crossbowman';
     public type = SoldierType.RANGED;
-    public cost = 3;
+    public cost = 8;
     public upgradeCost = 3;
-    public healCost = 2;
+    public healCost = 3;
 
     public goldValue = 4;
 
@@ -107,7 +107,7 @@ export class EuropeanArcher extends Soldier {
     public maxHealth = 3;
     public health = this.maxHealth;
     public attackRange = 250;
-    public attackRate = new Duration(1000);
+    public attackRate = new Duration(1200);
 
     public draw(ctx: Context) {
         const { x, y } = this.pos;
@@ -160,7 +160,7 @@ export class EuropeanArcher extends Soldier {
         }
 
         if (this.rank === SoldierRank.ELITE) {
-            this.attackRate = new Duration(800);
+            this.attackRate = new Duration(1000);
         }
     }
 }
@@ -172,10 +172,10 @@ export class EuropeanKnight extends Soldier {
     public upgradeCost = 3;
     public healCost = 3;
 
-    public goldValue = 5;
+    public goldValue = 3;
 
-    public attack = 3;
-    public speed = .25;
+    public attack = 2;
+    public speed = .33;
     public maxHealth = 8;
     public health = this.maxHealth;
     public attackRange = 50;

@@ -10,6 +10,7 @@ import { incrementSeason } from "./season";
 import { EuropeanKnight, EuropeanSoldier, EuropeanArcher } from "./soldiers/europeans";
 import { MongolSoldier, MongolHorseArcher, MongolHorseMan } from "./soldiers/mongols";
 import { Soldier } from "./soldiers/soldier";
+import { Sounds } from "./sounds";
 import { trees } from "./tree";
 import { Vector2 } from "./vector";
 import { WAVES } from "./wave";
@@ -83,13 +84,13 @@ export class Game {
     public projectiles = PROJECTILES;
 
     public soldierSize = 15;
-    public playerUnits = [new MongolSoldier(new AABB()), new MongolHorseArcher(new AABB()), new MongolHorseMan(new AABB())];
+    public playerUnits = [new MongolSoldier(new AABB()), new MongolHorseMan(new AABB()), new MongolHorseArcher(new AABB())];
     public playerArmy: Soldier[] = [
         new MongolSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT - 200))),
         new MongolSoldier(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2 + 50, SCREEN_HEIGHT - 200))),
         new MongolHorseArcher(new AABB(this.soldierSize, this.soldierSize, new Vector2(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 150))),
     ];
-    public enemyUnits = [new EuropeanSoldier(new AABB()), new EuropeanArcher(new AABB()), new EuropeanKnight(new AABB())];
+    public enemyUnits = [new EuropeanSoldier(new AABB()), new EuropeanKnight(new AABB()), new EuropeanArcher(new AABB())];
     public enemyArmy: Soldier[] = [];
 
     public selectedUnit?: Soldier;
@@ -130,9 +131,16 @@ export class Game {
     public startBattle() {
         if (this.wave > WAVES.length) return;
 
+        Sounds.playMusic();
+
         delete this.selectedUnit;
         this.state = State.IN_BATTLE;
         this.enemyArmy = WAVES[this.wave - 1];
+        [...this.enemyArmy, ...this.playerArmy].forEach(_ => {
+            _.attackRate.elapsed = 0;
+            _.damaged = 0;
+            _.meleeAttack = 0;
+        });
     }
 
     public start() {
@@ -236,6 +244,7 @@ export class Game {
         if (shooter) {
             playerUnit.damaged = playerUnit.maxDamageFrames;
             playerUnit.health -= shooter.attack;
+            Sounds.playSound(Sounds.arrowHit);
         }
 
         return true;
@@ -251,6 +260,7 @@ export class Game {
         if (playerUnit) {
             enemyUnit.damaged = enemyUnit.maxDamageFrames;
             enemyUnit.health -= playerUnit.attack;
+            Sounds.playSound(Sounds.arrowHit);
             if (enemyUnit.health <= 0) {
                 playerUnit.experience += 1;
             }
@@ -274,11 +284,18 @@ export class Game {
                 $('#ui-battle-breakdown').style.visibility = 'hidden';
                 break;
             case State.BATTLE_WON:
+            case State.BATTLE_LOST:
                 $('#ui-left').style.visibility = 'hidden';
                 $('#ui-right').style.visibility = 'hidden';
                 $('#ui-soldier-counts').style.visibility = 'hidden';
                 $('#ui-battle-breakdown').style.visibility = 'visible';
                 break;
+            case State.GAME_COMPLETE:
+                $('#ui-game-complete').style.visibility = 'visible';
+                $('#ui-left').style.visibility = 'hidden';
+                $('#ui-right').style.visibility = 'hidden';
+                $('#ui-soldier-counts').style.visibility = 'hidden';
+                $('#ui-battle-breakdown').style.visibility = 'hidden';
         }
     }
 
@@ -288,25 +305,32 @@ export class Game {
 
         this.endingBattle = true;
         setTimeout(() => {
+            Sounds.stopMusic();
             const breakdown = {};
             breakdown['waveNumber'] = this.wave;
             breakdown['unitsLost'] = this.playerArmy.length - this.livingSoldiers.length;
             breakdown['goldEarned'] = this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
+            breakdown['battleWon'] = this.livingSoldiers.length > 0;
             this.state = State.SHOP;
-            this.gold += this.enemyArmy.reduce((acc, _) => acc + _.goldValue, 0);
-            this.healCost = this.calculateHealCost();
-            this.upgradeCost = this.calculateUpgradeCost();
 
+            const won = this.livingSoldiers.length > 0;
+            breakdown['goldEarned'] = won ? breakdown['goldEarned'] : Math.floor(breakdown['goldEarned'] / 2);
             // battle won
-            if (this.livingSoldiers.length > 0) {
+            if (won && this.wave <= WAVES.length) {
                 this.wave += 1;
                 incrementSeason();
-                layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-                this.playingField.draw(layers.bg);
             } else {
                 // battle lost
                 this.resetSoldierHealth();
             }
+
+            this.gold += breakdown['goldEarned'];
+            this.healCost = this.calculateHealCost();
+            this.upgradeCost = this.calculateUpgradeCost();
+            layers.bg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            this.playingField.draw(layers.bg);
+
+            this.livingSoldiers = this.playerArmy.filter(_ => _.alive);
 
             this.projectiles.length = 0;
             this.playerArmy = this.livingSoldiers;
@@ -315,14 +339,24 @@ export class Game {
             this.updateRecruitButtons();
 
             this.endingBattle = false;
-            this.showBattleBreakdown(breakdown);
+
+            if (this.wave > WAVES.length) {
+                this.state = State.GAME_COMPLETE;
+            } else {
+                this.showBattleBreakdown(breakdown);
+            }
         }, 2500);
     }
 
     public showBattleBreakdown(breakdown: any) {
-        const won = this.livingSoldiers.length > 0;
+        const won = breakdown['battleWon'];
         this.state = won ? State.BATTLE_WON : State.BATTLE_LOST;
 
+        if (won) {
+            $('#ui-battle-breakdown').classList.remove('loss');
+        } else {
+            $('#ui-battle-breakdown').classList.add('loss');
+        }
         $('#status').innerText = won ? "Battle Won" : "Battle Lost";
         $('#wave-number').innerText = breakdown.waveNumber;
         $("#troops-lost").innerText = breakdown.unitsLost;
@@ -336,10 +370,18 @@ export class Game {
     }
 
     public resetSoldierHealth() {
-        this.playerArmy.forEach(_ => _.health = _.maxHealth);
+        this.enemyArmy.forEach(_ => {
+            _.alive = true;
+            _.health = _.maxHealth;
+        });
+        this.playerArmy.forEach(_ => {
+            _.alive = true;
+            _.health = _.maxHealth;
+        });
     }
 
     public resetSoldierPositions() {
+        this.enemyArmy.forEach(_ => _.bounds.pos = _.startPos.copy());
         this.playerArmy.forEach(_ => _.bounds.pos = _.startPos.copy());
     }
 
@@ -352,9 +394,10 @@ export class Game {
 
         if (this.state === State.IN_BATTLE) {
             this.projectiles.filter(p => !p.finished).forEach(p => p.draw(layers.mg));
+            this.livingEnemies.forEach(s => s.draw(layers.mg));
         }
 
-        [...this.livingSoldiers, ...this.livingEnemies].forEach(s => {
+        this.livingSoldiers.forEach(s => {
             if (this.state !== State.IN_BATTLE) {
                 s.damaged = 0;
                 s.meleeAttack = 0;
@@ -421,6 +464,7 @@ export class Game {
         $('#start').addEventListener('click', this.handleStartClick);
         $('#upgrade').addEventListener('click', this.handleUpgradeClick);
         $('#continue').addEventListener('click', this.handleContinueClick);
+        $('#play-again').addEventListener('click', () => window.location.reload());
 
         $("#stage").addEventListener('pointerup', this.handleDrop);
         $("#stage").addEventListener('pointerdown', this.handleUnitPlacement);
@@ -433,7 +477,7 @@ export class Game {
         }
 
         if (this.state === State.BATTLE_LOST) {
-            this.state = State.GAME_OVER;
+            this.state = State.SHOP;
         }
     };
 
@@ -514,7 +558,7 @@ export class Game {
 
         const pos = this.placementValid() ? this.mouse.copy() : this.selectedUnit.startPos;
         this.selectedUnit.bounds.pos = pos;
-        this.selectedUnit.startPos = pos;
+        this.selectedUnit.startPos = pos.copy();
         delete this.selectedUnit;
     };
 

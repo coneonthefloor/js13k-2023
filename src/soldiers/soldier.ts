@@ -3,6 +3,7 @@ import { Context } from "../canvas";
 import { DEBUG, PROJECTILES } from "../constants";
 import { Duration } from "../duration";
 import { Projectile } from "../projectile";
+import { Sounds } from "../sounds";
 import { Vector2 } from "../vector";
 
 export enum SoldierRank {
@@ -68,9 +69,7 @@ export class Soldier {
         return this.bounds.pos;
     }
 
-    public get alive(): boolean {
-        return this.health > 0;
-    }
+    public alive = true;
 
 
     constructor(public bounds: AABB, public rank = SoldierRank.BASE) {
@@ -129,6 +128,12 @@ export class Soldier {
         if (this.meleeAttack) {
             this.meleeAttack--;
         }
+
+        if (this.alive && this.health <= 0) {
+            Sounds.playSound(Sounds.death);
+        }
+
+        this.alive = this.health > 0;
     }
 
     public performAttack() {
@@ -136,6 +141,7 @@ export class Soldier {
             this.attackAngle = Math.atan2(this.target.pos.y - this.pos.y, this.target.pos.x - this.pos.x);
             if (this.type === SoldierType.RANGED) {
                 PROJECTILES.push(new Projectile(this.id, this.attackAngle, this.pos));
+                Sounds.playSound(Sounds.shoot);
             } else {
                 this.meleeAttack = this.meleeAttackFrames;
                 this.target.health -= this.attack;
@@ -143,6 +149,7 @@ export class Soldier {
                     this.experience += 1;
                 }
                 this.target.damaged = this.target.maxDamageFrames;
+                Sounds.playSound(Sounds.hit);
             }
         }
     }

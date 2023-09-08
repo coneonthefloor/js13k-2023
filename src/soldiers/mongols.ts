@@ -28,11 +28,11 @@ export class MongolSoldier extends Soldier {
     public healCost = 1;
 
     public attack = 1;
-    public speed = .25;
-    public maxHealth = 3;
+    public speed = .4;
+    public maxHealth = 4;
     public health = this.maxHealth;
     public attackRange = 50;
-    public attackRate = new Duration(800);
+    public attackRate = new Duration(1000);
 
     public goldValue = 1;
 
@@ -125,18 +125,18 @@ export class MongolSoldier extends Soldier {
 export class MongolHorseArcher extends Soldier {
     public name = 'Horse Archer';
     public type = SoldierType.RANGED;
-    public cost = 4;
-    public upgradeCost = 3;
+    public cost = 8;
+    public upgradeCost = 4;
     public healCost = 2;
 
     public goldValue = 2;
 
     public attack = 1;
     public speed = .8;
-    public maxHealth = 6;
+    public maxHealth = 4;
     public health = this.maxHealth;
     public attackRange = 180;
-    public attackRate = new Duration(800);
+    public attackRate = new Duration(1000);
 
     public draw(ctx: Context) {
         const { x, y } = this.pos;
@@ -207,13 +207,13 @@ export class MongolHorseArcher extends Soldier {
 export class MongolHorseMan extends Soldier {
     public name = 'Mounted Knight';
     public type = SoldierType.MOUNTED;
-    public cost = 7;
-    public upgradeCost = 4;
+    public cost = 4;
+    public upgradeCost = 3;
     public healCost = 3;
 
     public goldValue = 3;
 
-    public attack = 3;
+    public attack = 2;
     public speed = .7;
     public maxHealth = 7;
     public health = this.maxHealth;
