@@ -1,7 +1,8 @@
 import { AABB } from "./aabb";
-import { layers } from "./canvas";
+import { Context, layers } from "./canvas";
 import { TopCastle, BottomCastle } from "./castle";
 import { SCREEN_WIDTH, SCREEN_HEIGHT, PROJECTILES } from "./constants";
+import { EXPLOSIONS, updateExplosion } from "./explosion";
 import { Glitter } from "./glitter";
 import { PlayingField } from "./playing-field";
 import { Projectile } from "./projectile";
@@ -82,6 +83,8 @@ export class Game {
     public maxSoldiersPerArmy = 12;
 
     public projectiles = PROJECTILES;
+
+    public explosions = EXPLOSIONS;
 
     public soldierSize = 15;
     public playerUnits = [new MongolSoldier(new AABB()), new MongolHorseMan(new AABB()), new MongolHorseArcher(new AABB())];
@@ -393,6 +396,14 @@ export class Game {
         layers.fg.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
         this.glitter.forEach(p => p.draw(layers.fg));
+        for (const [index, explosion] of this.explosions.entries()) {
+            if (explosion.ended) {
+                this.explosions.splice(index, 1);
+            } else {
+                updateExplosion(layers.fg, explosion);
+            }
+        }
+
         this.decorations.forEach(d => d.draw(layers.mg));
 
         if (this.state === State.IN_BATTLE) {

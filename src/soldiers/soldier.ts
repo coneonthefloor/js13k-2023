@@ -2,6 +2,7 @@ import { AABB } from "../aabb";
 import { Context } from "../canvas";
 import { DEBUG, PROJECTILES } from "../constants";
 import { Duration } from "../duration";
+import { EXPLOSIONS, createExplosion } from "../explosion";
 import { Projectile } from "../projectile";
 import { Sounds } from "../sounds";
 import { Vector2 } from "../vector";
@@ -131,6 +132,7 @@ export class Soldier {
 
         if (this.alive && this.health <= 0) {
             Sounds.playSound(Sounds.death);
+            EXPLOSIONS.push(createExplosion(this.pos))
         }
 
         this.alive = this.health > 0;
