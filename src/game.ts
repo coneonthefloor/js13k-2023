@@ -8,7 +8,7 @@ import { PlayingField } from "./playing-field";
 import { Projectile } from "./projectile";
 import { randomInt, randomFloat } from "./random";
 import { incrementSeason } from "./season";
-import { EuropeanKnight, EuropeanSoldier, EuropeanArcher } from "./soldiers/europeans";
+import { EuropeanKnight, EuropeanSoldier, EuropeanArcher, Pope } from "./soldiers/europeans";
 import { MongolSoldier, MongolHorseArcher, MongolHorseMan } from "./soldiers/mongols";
 import { Soldier } from "./soldiers/soldier";
 import { Sounds } from "./sounds";
@@ -80,7 +80,7 @@ export class Game {
         this.updateUpgradeCostUI();
     }
 
-    public maxSoldiersPerArmy = 12;
+    public maxSoldiersPerArmy = 15;
 
     public projectiles = PROJECTILES;
 

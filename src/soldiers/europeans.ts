@@ -273,3 +273,97 @@ export class EuropeanKnight extends Soldier {
         }
     }
 }
+
+export class Pope extends Soldier {
+    public name = 'Pope';
+    public type = SoldierType.MELEE;
+
+    public attack = 4;
+    public speed = .25;
+    public maxHealth = 100;
+    public health = this.maxHealth;
+    public attackRange = 100;
+    public attackRate = new Duration(1000);
+
+    public animateMeleeAttack(ctx: Context) {
+        if (this.meleeAttack && this.target) {
+            ctx.save();
+            ctx.fillStyle = 'white';
+
+            const offset = this.meleeAttackFrames - (this.meleeAttack * 2);
+            const offsetRadians = offset * (0.0174533 * 2);
+            ctx.translate(this.pos.x, this.pos.y);
+            if (this.target.pos.x < this.pos.x) {
+                ctx.rotate(this.attackAngle - offsetRadians);
+            } else {
+                ctx.rotate(this.attackAngle + offsetRadians);
+            }
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'black';
+            ctx.moveTo(0, 0);
+            ctx.lineTo(this.attackRange - this.width, 0);
+            ctx.stroke();
+            ctx.fillStyle = 'gold';
+            ctx.beginPath();
+            ctx.arc(this.attackRange - this.width, 0, this.width / 3, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    public draw(ctx: Context) {
+        const { x, y } = this.pos;
+        this.drawHealthBar(ctx);
+        this.animateMeleeAttack(ctx);
+
+        ctx.save();
+        ctx.translate(x, y);
+
+        ctx.lineWidth = 2;
+
+        // face
+        ctx.beginPath();
+        ctx.arc(0, 0, this.width, 0, Math.PI);
+        ctx.closePath();
+        ctx.fillStyle = colors[this.rank].skin;
+        ctx.fill();
+        ctx.stroke();
+
+        // helmet visor
+        ctx.beginPath();
+        ctx.moveTo(-this.width * 1.2, -this.height * .9);
+        ctx.lineTo(-this.width, 0);
+        ctx.lineTo(this.width, 0);
+        ctx.lineTo(this.width * 1.2, -this.height * .9);
+        ctx.lineTo(0, -this.height * 1.5);
+        ctx.closePath();
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-this.width * 1.1, -this.height * .5);
+        ctx.lineTo(-this.width, 0);
+        ctx.lineTo(0, this.height / 2);
+        ctx.lineTo(this.width, 0);
+        ctx.lineTo(this.width * 1.1, -this.height * .5);
+        ctx.lineTo(0, -this.height);
+        ctx.closePath();
+        ctx.fillStyle = 'gray';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, -this.height * .9, this.width / 4, 2 * Math.PI, 0);
+        ctx.closePath();
+        ctx.fillStyle = 'gold';
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+
+        super.draw(ctx);
+    }
+}
