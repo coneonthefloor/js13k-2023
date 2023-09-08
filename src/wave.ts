@@ -150,6 +150,11 @@ export const WAVES: Soldier[][] = [
         new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 50, midLine)), SoldierRank.ELITE),
         new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 50, midLine)), SoldierRank.ELITE),
         new EuropeanArcher(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2, midLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 100, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 100, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 - 50, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2 + 50, backLine)), SoldierRank.ELITE),
+        new EuropeanSoldier(new AABB(15, 15, new Vector2(SCREEN_WIDTH / 2, backLine)), SoldierRank.ELITE),
         new Pope(new AABB(30, 30, new Vector2(SCREEN_WIDTH / 2, backLine))),
     ]
 ];

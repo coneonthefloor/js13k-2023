@@ -337,6 +337,7 @@ export class Game {
             this.playingField.draw(layers.bg);
 
             this.livingSoldiers = this.playerArmy.filter(_ => _.alive);
+            $('#current-soldiers').innerText = this.playerArmy.length;
 
             this.projectiles.length = 0;
             this.playerArmy = this.livingSoldiers;
